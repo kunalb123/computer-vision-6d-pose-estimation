@@ -33,9 +33,12 @@ class LineMODCocoDataset(CocoDetection):
     def __getitem__(self, index):
         img, target = super(LineMODCocoDataset, self).__getitem__(index)
         img = np.array(img)
-        return img, target
         # Assume the target contains pose information
-        pose = self.extract_pose(target)
+        pose = self.extract_pose(target) # 3 x 4
+
+        P_m2c = target['cam_K'].reshape(3, 3) @ pose
+
+        
 
         if self.transform:
             img = self.transform(img)
@@ -53,9 +56,8 @@ class LineMODCocoDataset(CocoDetection):
     def extract_pose(self, target):
         # Placeholder for extracting pose information from the target
         # This should be implemented according to the specifics of your dataset
-        quaternion = np.array([0, 0, 0, 1])  # Replace with actual data
-        translation = np.array([0, 0, 0])  # Replace with actual data
-        pose = np.concatenate([quaternion, translation])
+        R, t = target['cam_R_m2c'], target['cam_t_m2c']
+        pose = np.concatenate([R.reshape(3, 3), t])
         return pose
 
 if __name__ == '__main__':
