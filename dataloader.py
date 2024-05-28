@@ -33,7 +33,7 @@ class LineMODCocoDataset(CocoDetection):
     def __getitem__(self, index):
         img, target = super(LineMODCocoDataset, self).__getitem__(index)
         img = np.array(img)
-
+        return img, target
         # Assume the target contains pose information
         pose = self.extract_pose(target)
 
@@ -58,14 +58,15 @@ class LineMODCocoDataset(CocoDetection):
         pose = np.concatenate([quaternion, translation])
         return pose
 
-from torch.utils.data import DataLoader
-from torchvision.transforms import ToTensor
+if __name__ == '__main__':
+    from torch.utils.data import DataLoader
+    from torchvision.transforms import ToTensor
 
-# Paths to your dataset
-root = '/path/to/linemod/test_data'
-annFile = '/path/to/linemod/annotations.json' # TODO wtf is this
+    # Paths to your dataset
+    root = '/path/to/linemod/test_data'
+    annFile = '/path/to/linemod/annotations.json' # TODO wtf is this
 
-dataset = LineMODCocoDataset(root, annFile, transform=ToTensor())
+    dataset = LineMODCocoDataset(root, annFile, transform=ToTensor())
 
-# Create DataLoader
-dataloader = DataLoader(dataset, batch_size=128, shuffle=True, num_workers=4)
+    # Create DataLoader
+    dataloader = DataLoader(dataset, batch_size=128, shuffle=True, num_workers=4)
