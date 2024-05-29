@@ -42,7 +42,7 @@ class LineMODCocoDataset(CocoDetection):
     def project_3D_vertices(self, vertices, target):
         pose = self.extract_pose(target) # 3 x 4
         P_m2c = np.array(target['cam_K']).reshape(3, 3) @ pose
-        vertices = np.vstack((vertices, np.zeros(vertices.shape[1])))
+        vertices = np.vstack((vertices, np.ones((vertices.shape[1], 1))))
         homogeneous_2d = P_m2c @ vertices
         pixel_coordinates = homogeneous_2d[:2, :] / homogeneous_2d[2, :]
         return pixel_coordinates
