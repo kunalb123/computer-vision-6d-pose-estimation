@@ -10,7 +10,7 @@ class CompositeLoss(nn.Module):
         belief_loss = 0.0
         vector_loss = 0.0
         for i in range(self.stages):
-            belief_loss += self.mse_loss(pred_belief, gt_belief)
-            vector_loss += self.mse_loss(pred_vector, gt_vector)
+            belief_loss += self.mse_loss(pred_belief[i], gt_belief)
+            vector_loss += self.mse_loss(pred_vector[i], gt_vector)
         total_loss = belief_loss + vector_loss
         return total_loss

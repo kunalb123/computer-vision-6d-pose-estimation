@@ -23,7 +23,7 @@ def train_model(model, dataloader, loss_fn, optimizer, num_epochs=60):
     model.train()
     for epoch in tqdm(range(num_epochs)):
         running_loss = 0.0
-        for images, targets in dataloader:
+        for images, targets in tqdm(dataloader, desc=f"Epoch {epoch + 1}/{num_epochs}"):
             images = images.to(device)
             targets = targets.to(device)
 
@@ -34,7 +34,10 @@ def train_model(model, dataloader, loss_fn, optimizer, num_epochs=60):
 
             # Forward pass
             pred_belief_maps, pred_vector_fields = model(images)
-
+            # print(type(pred_belief_maps))
+            # print(type(gt_belief_maps))
+            # print(type(pred_vector_fields))
+            # print(type(gt_vector_fields))
             # Compute loss
             loss = loss_fn(pred_belief_maps, gt_belief_maps, pred_vector_fields, gt_vector_fields)
 
@@ -53,5 +56,5 @@ if __name__ == '__main__':
     modelsPath = 'lm_models/models/models_info.json'
     annFile = 'LOOKHEREannotations.json'
     dataset = LineMODCocoDataset(root, annFile, modelsPath)
-    dataloader = DataLoader(dataset, batch_size=64, shuffle=True)
+    dataloader = DataLoader(dataset, batch_size=4, shuffle=True)
     train_model(model, dataloader, composite_loss, optimizer)

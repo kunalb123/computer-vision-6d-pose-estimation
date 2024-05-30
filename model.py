@@ -61,17 +61,16 @@ class DeepPose(nn.Module):
         belief1 = self.stage1_belief(x1)
         vector1 = self.stage1_vector(x1)
 
-        belief_maps = [belief1]
-        vector_fields = [vector1]
-
+        belief_maps = torch.unsqueeze(belief1, 0)
+        vector_fields = torch.unsqueeze(vector1, 0)
         # Subsequent stages
         for i in range(5):
             x = torch.cat([x, belief_maps[-1], vector_fields[-1]], dim=1)
             x = self.last_five_stages[i](x)
             belief = self.belief_layers[i](x)
             vector = self.vector_layers[i](x)
-            belief_maps.append(belief)
-            vector_fields.append(vector)
+            belief_maps = torch.cat((belief_maps, torch.unsqueeze(belief, 0)))
+            vector_fields = torch.cat((vector_fields, torch.unsqueeze(vector, 0)))
 
         return belief_maps, vector_fields
 
