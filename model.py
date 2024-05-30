@@ -73,6 +73,6 @@ class DeepPose(nn.Module):
             belief_maps.append(belief)
             vector_fields.append(vector)
 
-        return belief_maps[-1], vector_fields[-1]
+        return belief_maps, vector_fields
 
 
