@@ -74,14 +74,19 @@ def train_model(model, dataloader, loss_fn, optimizer, num_epochs=60, checkpoint
 
 
 if __name__ == '__main__':
+    device = torch.device('cpu')
+    if torch.cuda.is_available():
+        device = torch.device('cuda')
+    if torch.backends.mps.is_available():
+        device = torch.device('mps')
+    print('device being used:', device)
 
     # Initialize model, loss, and optimizer
     model = DeepPose().to(device)
     composite_loss = CompositeLoss(stages=6)
     optimizer = optim.Adam(model.parameters(), lr=0.0001)
-
     # Train the model
-    root = 'test_data'
+    root = 'lm_test_all\\test'
     modelsPath = 'lm_models/models/models_info.json'
     annFile = 'LOOKHEREannotations.json'
     dataset = LineMODCocoDataset(root, annFile, modelsPath)
