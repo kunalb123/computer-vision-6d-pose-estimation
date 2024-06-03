@@ -20,13 +20,8 @@ def train_model(model, dataloader, loss_fn, optimizer, num_epochs=60):
 
             optimizer.zero_grad()
 
-            # Forward pass
             pred_belief_maps, pred_vector_fields = model(images)
-            # print(type(pred_belief_maps))
-            # print(type(gt_belief_maps))
-            # print(type(pred_vector_fields))
-            # print(type(gt_vector_fields))
-            # Compute loss
+
             loss = loss_fn(pred_belief_maps, gt_belief_maps, pred_vector_fields, gt_vector_fields)
 
             # Backward pass and optimization
