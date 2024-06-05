@@ -4,9 +4,10 @@ from loss import CompositeLoss
 import torch 
 from dataloader import LineMODCocoDataset
 from torch.utils.data import DataLoader
-from torchvision.transforms import ToTensor
+import torchvision.transforms as transforms
 from tqdm import tqdm
 import os
+import numpy as np
 
 device = torch.device('cpu')
 if torch.cuda.is_available():
@@ -16,22 +17,43 @@ if torch.backends.mps.is_available():
 print('device being used:', device)
 
 
-def save_checkpoint(state, filename="checkpoint.pth.tar"):
+def save_checkpoint(state, filename="checkpoint.pth"):
     print("=> Saving checkpoint")
     torch.save(state, filename)
 
 
-def load_checkpoint(checkpoint_path, model, optimizer):
+def load_checkpoint(checkpoint_path, model, optimizer=None):
     print("=> Loading checkpoint")
-    checkpoint = torch.load(checkpoint_path)
+    checkpoint = torch.load(checkpoint_path, map_location=device)
     model.load_state_dict(checkpoint['state_dict'])
-    optimizer.load_state_dict(checkpoint['optimizer'])
+    if optimizer is not None:
+        optimizer.load_state_dict(checkpoint['optimizer'])
     epoch = checkpoint['epoch']
     loss = checkpoint['loss']
     return epoch, loss
 
+def load_model(checkpoint_path, model, optimizer=None):
+    print("=> Loading checkpoint")
+    checkpoint = torch.load(checkpoint_path, map_location=device)
+    
+    # Remove 'module.' prefix from state_dict keys if it exists
+    state_dict = checkpoint['state_dict']
+    new_state_dict = {}
+    for k, v in state_dict.items():
+        if k.startswith('module.'):
+            new_state_dict[k[7:]] = v  # remove 'module.' prefix
+        else:
+            new_state_dict[k] = v
+    
+    model.load_state_dict(new_state_dict)
+    
+    if optimizer:
+        optimizer.load_state_dict(checkpoint['optimizer'])
+    
+    print("=> Loaded checkpoint")
 
-def train_model(model, dataloader, loss_fn, optimizer, num_epochs=60, checkpoint_path='checkpoint.pth.tar'):
+
+def train_model(model, dataloader, loss_fn, optimizer, num_epochs=60, checkpoint_path='checkpoint.pth'):
     start_epoch = 0
     if checkpoint_path and os.path.exists(checkpoint_path):
         start_epoch, _ = load_checkpoint(checkpoint_path, model, optimizer)
@@ -73,6 +95,18 @@ def train_model(model, dataloader, loss_fn, optimizer, num_epochs=60, checkpoint
         save_checkpoint(checkpoint, filename=checkpoint_path)
 
 
+class GaussianNoise(object):
+    def __init__(self, mean=0.0, std=2.0):
+        self.mean = mean
+        self.std = std
+        
+    def __call__(self, tensor):
+        # Add Gaussian noise
+        noise = torch.randn(tensor.size()) * self.std + self.mean
+        tensor = tensor + noise
+        return tensor
+
+
 if __name__ == '__main__':
     device = torch.device('cpu')
     if torch.cuda.is_available():
@@ -86,9 +120,16 @@ if __name__ == '__main__':
     composite_loss = CompositeLoss(stages=6)
     optimizer = optim.Adam(model.parameters(), lr=0.0001)
     # Train the model
-    root = 'lm_test_all\\test'
+    root = 'train_pbr'
     modelsPath = 'lm_models/models/models_info.json'
-    annFile = 'LOOKHEREannotations.json'
-    dataset = LineMODCocoDataset(root, annFile, modelsPath)
-    dataloader = DataLoader(dataset, batch_size=32, shuffle=True, num_workers=8)
+    annFile = 'train_annotations.json'
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        GaussianNoise(mean=0.0, std=2.0),
+        transforms.ColorJitter(brightness=0.2, contrast=0.2),
+        transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225), inplace=True),
+    ])
+    dataset = LineMODCocoDataset(root, annFile, modelsPath, transform=transform)
+    
+    dataloader = DataLoader(dataset, batch_size=16, shuffle=True, num_workers=2)
     train_model(model, dataloader, composite_loss, optimizer)

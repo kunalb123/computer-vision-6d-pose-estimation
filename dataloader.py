@@ -2,6 +2,7 @@ import torch
 from torchvision.datasets import CocoDetection
 import numpy as np
 import json
+from torch.utils.data import DataLoader
 import cv2
 
 class LineMODCocoDataset(CocoDetection):
@@ -124,17 +125,12 @@ class LineMODCocoDataset(CocoDetection):
     def __getitem__(self, index):
         out = super(LineMODCocoDataset, self).__getitem__(index)
         img, target = out[0], out[1][0]
-        img = np.array(img)
-
-        if self.transform:
-            img = self.transform(img)
-        else:
-            img = self.apply_augmentations(img)
+        img = np.array(img).transpose((1, 2, 0))
 
         belief_map, vector_field, projected_vertices = self.generate_ground_truth(img, target)
         gt_maps = np.concatenate((belief_map, vector_field), axis=0)
 
-        img = torch.from_numpy(img.transpose((2, 0, 1))).float() / 255.0
+        img = torch.from_numpy(img.transpose((2, 0, 1))).float() 
         gt_maps = torch.from_numpy(gt_maps).float()
 
         return img, gt_maps
@@ -147,7 +143,6 @@ class LineMODCocoDataset(CocoDetection):
         return pose
 
 if __name__ == '__main__':
-    from torch.utils.data import DataLoader
     from torchvision.transforms import ToTensor
 
     # Paths to your dataset

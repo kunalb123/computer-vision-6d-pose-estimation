@@ -2,7 +2,7 @@ import json
 import os
 from PIL import Image
 
-def bop_to_coco(bop_root, output_file, use_amodal_bbox=True):
+def bop_to_coco(bop_root, output_file, use_amodal_bbox=True, train=True):
     images = []
     annotations = []
     categories = []
@@ -22,8 +22,14 @@ def bop_to_coco(bop_root, output_file, use_amodal_bbox=True):
         })
         category_map[int(model_id)] = f"obj_{int(model_id):06d}"
     
-    # Iterate over scenes
-    scenes_root = os.path.join(bop_root, 'test')
+    # Determine the scenes root and image extension based on the mode
+    if train:
+        scenes_root = os.path.join(bop_root, 'train_pbr')
+        img_extension = '.jpg'
+    else:
+        scenes_root = os.path.join(bop_root, 'test')
+        img_extension = '.png'
+        
     scenes = sorted([d for d in os.listdir(scenes_root) if os.path.isdir(os.path.join(scenes_root, d))])
     for scene in scenes:
         scene_path = os.path.join(scenes_root, scene)
@@ -35,7 +41,7 @@ def bop_to_coco(bop_root, output_file, use_amodal_bbox=True):
             scene_camera = json.load(f)
         
         # Iterate over images in the scene
-        image_files = sorted(os.listdir(os.path.join(scene_path, 'rgb')))
+        image_files = sorted([f for f in os.listdir(os.path.join(scene_path, 'rgb')) if f.endswith(img_extension)])
         for image_file in image_files:
             image_id = int(image_file.split('.')[0])
             img_path = os.path.join(scene_path, 'rgb', image_file)
@@ -54,7 +60,6 @@ def bop_to_coco(bop_root, output_file, use_amodal_bbox=True):
                 for obj_id, (gt, gt_info, cam) in enumerate(zip(scene_gt[str(image_id)], scene_gt_info[str(image_id)], [scene_camera[str(image_id)]])):
                     category_id = gt['obj_id']
                     bbox = gt_info['bbox_obj'] if use_amodal_bbox else gt_info['bbox_visib']
-                    # print(scene_camera, type(scene_camera))
                     annotations.append({
                         "id": ann_id,
                         "image_id": img_id,
@@ -63,8 +68,8 @@ def bop_to_coco(bop_root, output_file, use_amodal_bbox=True):
                         "area": bbox[2] * bbox[3],
                         "iscrowd": 0,
                         "cam_R_m2c": gt['cam_R_m2c'],
-                        "cam_t_m2c" : gt['cam_t_m2c'],
-                        "cam_K" : cam['cam_K']
+                        "cam_t_m2c": gt['cam_t_m2c'],
+                        "cam_K": cam['cam_K']
                     })
                     ann_id += 1
             
@@ -89,7 +94,7 @@ def bop_to_coco(bop_root, output_file, use_amodal_bbox=True):
 
 # Define paths
 bop_root = ''
-output_file = 'LOOKHEREannotations.json'
+output_file = 'train_annotations.json'
 
 # Convert using amodal bounding boxes
-bop_to_coco(bop_root, output_file, use_amodal_bbox=True)
+bop_to_coco(bop_root, output_file, use_amodal_bbox=True, train=True)
