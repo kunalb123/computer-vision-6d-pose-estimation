@@ -61,7 +61,10 @@ def train_model(model, dataloader, loss_fn, optimizer, num_epochs=60, checkpoint
     model.train()
     for epoch in tqdm(range(start_epoch, num_epochs)):
         running_loss = 0.0
+        i = 0
         for images, targets in tqdm(dataloader, desc=f"Epoch {epoch + 1}/{num_epochs}"):
+            i += 1
+            print(i)
             images = images.to(device)
             targets = targets.to(device)
 
@@ -120,16 +123,15 @@ if __name__ == '__main__':
     composite_loss = CompositeLoss(stages=6)
     optimizer = optim.Adam(model.parameters(), lr=0.0001)
     # Train the model
-    root = 'train_pbr'
+    root = 'train'
     modelsPath = 'lm_models/models/models_info.json'
-    annFile = 'train_annotations.json'
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        GaussianNoise(mean=0.0, std=2.0),
-        transforms.ColorJitter(brightness=0.2, contrast=0.2),
-        transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225), inplace=True),
-    ])
-    dataset = LineMODCocoDataset(root, annFile, modelsPath, transform=transform)
+
+    OBJECT = 1
     
-    dataloader = DataLoader(dataset, batch_size=16, shuffle=True, num_workers=2)
-    train_model(model, dataloader, composite_loss, optimizer)
+    annFile = f'train_annotations_obj{OBJECT}.json'
+    checkpoint_path = f'obj{OBJECT}_checkpoint.pth'
+
+    dataset = LineMODCocoDataset(root, annFile, modelsPath)
+    
+    dataloader = DataLoader(dataset, batch_size=16, shuffle=True)#, num_workers=4)
+    train_model(model, dataloader, composite_loss, optimizer, checkpoint_path=checkpoint_path)
