@@ -1,27 +1,16 @@
 import torch
 from torchvision.datasets import CocoDetection
+import torchvision.transforms as transforms
 import numpy as np
 import json
+from torch.utils.data import DataLoader
 import cv2
+import albumentations as A
 
 class LineMODCocoDataset(CocoDetection):
     def __init__(self, root, annFile, modelsPath, transform=None, target_transform=None):
         super(LineMODCocoDataset, self).__init__(root, annFile, transform, target_transform)
         self.models = json.load(open(modelsPath, 'r'))
-
-    def apply_augmentations(self, image):
-        # Add Gaussian noise
-        noise = np.random.normal(0, 2.0, image.shape).astype(np.float32)
-        image = image + noise
-
-        # Random contrast and brightness
-        alpha = 1.0 + np.random.uniform(-0.2, 0.2)  # contrast control
-        beta = np.random.uniform(-0.2, 0.2) * 255  # brightness control
-        image = alpha * image + beta
-
-        # Clip to valid range
-        image = np.clip(image, 0, 255).astype(np.uint8)
-        return image
 
     def create_3D_vertices(self, model):
         vertices = np.empty((3, 0))
@@ -100,7 +89,7 @@ class LineMODCocoDataset(CocoDetection):
         return vector_field_x, vector_field_y
 
     def generate_ground_truth(self, image, target):
-        h, w = image.shape[0] // 8, image.shape[1] // 8
+        h, w = image.shape[1] // 8, image.shape[2] // 8
         belief_map = np.zeros((9, h, w), dtype=np.float32)
         vector_field = np.zeros((16, h, w), dtype=np.float32)
         cat = target['category_id']
@@ -124,20 +113,28 @@ class LineMODCocoDataset(CocoDetection):
     def __getitem__(self, index):
         out = super(LineMODCocoDataset, self).__getitem__(index)
         img, target = out[0], out[1][0]
-        img = np.array(img)
-
-        if self.transform:
-            img = self.transform(img)
-        else:
-            img = self.apply_augmentations(img)
-
+        img = np.array(img).transpose((1, 2, 0))
+        transform = A.Compose(
+            [
+                A.RandomBrightnessContrast(
+                    brightness_limit=0.2, contrast_limit=0.2, p=1
+                ),
+                A.GaussNoise(p=1)
+            ]
+        )
+        normalize = transforms.Compose(
+            [
+                transforms.ToTensor(),
+                transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+            ]
+        )
+        img = transform(image=img)['image'].transpose(2, 0, 1)
+        img = normalize(img)
         belief_map, vector_field, projected_vertices = self.generate_ground_truth(img, target)
         gt_maps = np.concatenate((belief_map, vector_field), axis=0)
-
-        img = torch.from_numpy(img.transpose((2, 0, 1))).float() / 255.0
         gt_maps = torch.from_numpy(gt_maps).float()
 
-        return img, gt_maps
+        return img, gt_maps #, projected_vertices
 
     def extract_pose(self, target):
         # Placeholder for extracting pose information from the target
@@ -147,14 +144,12 @@ class LineMODCocoDataset(CocoDetection):
         return pose
 
 if __name__ == '__main__':
-    from torch.utils.data import DataLoader
-    from torchvision.transforms import ToTensor
 
     # Paths to your dataset
     root = '/path/to/linemod/test_data'
     annFile = '/path/to/linemod/annotations.json' 
 
-    dataset = LineMODCocoDataset(root, annFile, transform=ToTensor())
+    dataset = LineMODCocoDataset(root, annFile)
 
     # Create DataLoader
     dataloader = DataLoader(dataset, batch_size=128, shuffle=True, num_workers=4)
