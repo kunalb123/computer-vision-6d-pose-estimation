@@ -129,12 +129,12 @@ class LineMODCocoDataset(CocoDetection):
             ]
         )
         img = transform(image=img)['image'].transpose(2, 0, 1)
-        img = normalize(img)
-        belief_map, vector_field, projected_vertices = self.generate_ground_truth(img, target)
+        img_norm = normalize(img)
+        belief_map, vector_field, projected_vertices = self.generate_ground_truth(img_norm, target)
         gt_maps = np.concatenate((belief_map, vector_field), axis=0)
         gt_maps = torch.from_numpy(gt_maps).float()
 
-        return img, gt_maps #, projected_vertices
+        return img_norm, gt_maps#, projected_vertices, target, img
 
     def extract_pose(self, target):
         # Placeholder for extracting pose information from the target

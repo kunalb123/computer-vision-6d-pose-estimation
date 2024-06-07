@@ -83,6 +83,7 @@ def train_model(model, dataloader, loss_fn, optimizer, num_epochs=60, checkpoint
             optimizer.step()
 
             running_loss += loss.item()
+            print('loss after batch:', loss.item())
 
         print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {running_loss/len(dataloader)}')
         checkpoint = {
@@ -117,10 +118,10 @@ if __name__ == '__main__':
     # Initialize model, loss, and optimizer
     model = DeepPose().to(device)
     composite_loss = CompositeLoss(stages=6)
-    optimizer = optim.Adam(model.parameters(), lr=0.0001)
+    optimizer = optim.Adam(model.parameters(), lr=0.000003125) # origial lr = 0.0001 (divide original learning rate by gpu and batchsize)
     # Train the model
     root = ''
-    modelsPath = 'data/lm_models/models/models_info.json'
+    modelsPath = 'lm_models/models/models_info.json'
 
     OBJECT = 1
     
@@ -129,5 +130,5 @@ if __name__ == '__main__':
 
     dataset = LineMODCocoDataset(root, annFile, modelsPath)
     
-    dataloader = DataLoader(dataset, batch_size=16, shuffle=True)#, num_workers=4)
+    dataloader = DataLoader(dataset, batch_size=16, shuffle=True, num_workers=4)
     train_model(model, dataloader, composite_loss, optimizer, checkpoint_path=checkpoint_path)

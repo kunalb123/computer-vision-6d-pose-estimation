@@ -25,7 +25,7 @@ def bop_to_coco(bop_root, output_files, target_object_id, use_amodal_bbox=True, 
     
     # Determine the scenes root and image extension based on the mode
     scene_train = os.path.join(bop_root, 'train', f'{target_object_id:06}')
-    scene_test = os.path.join(bop_root, 'lm_test_all\\test', f'{target_object_id:06}')
+    scene_test = os.path.join(bop_root, 'test', f'{target_object_id:06}')
     generate_im_ann(scene_train, im_ann, use_amodal_bbox, im_ann_id, split)
     generate_im_ann(scene_test, im_ann, use_amodal_bbox, im_ann_id, split)
 
@@ -120,7 +120,7 @@ def generate_im_ann(scene, im_ann, use_amodal_bbox, im_ann_id, split):
 
         
 # Define paths and parameters
-bop_root = 'data'  # Set your BOP root directory here
+bop_root = ''  # Set your BOP root directory here
 output_files = {'train': 'train_annotations_obj1.json', 'test': 'test_annotations_obj1.json'}
 target_object_id = 1  # Set the target object ID here
 

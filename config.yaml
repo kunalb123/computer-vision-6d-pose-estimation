@@ -1,0 +1,20 @@
+input_is_rectified: True   # Whether the input image is rectified (strongly suggested!)
+downscale_height: 400      # if the input image is larger than this, scale it down to this pixel height
+
+
+draw_colors: {
+    "cracker": [13, 255, 128],  # green
+    "gelatin": [255, 255, 255],  # while
+    "meat": [0, 104, 255],  # blue
+    "mustard": [217,12, 232],  # magenta
+    "soup": [255, 101, 0],  # orange
+    "sugar": [232, 222, 12],  # yellow
+    "bleach": [232, 222, 12],  # yellow
+}
+
+# Config params for DOPE
+thresh_angle: 0.5
+thresh_map: 0.01
+threshold: .5
+sigma: 3
+thresh_points: 0.1

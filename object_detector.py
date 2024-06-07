@@ -221,7 +221,10 @@ class ObjectDetector(object):
 
         # Run network inference
         image_tensor = transform(in_img)
-        image_torch = Variable(image_tensor).cuda().unsqueeze(0)
+        device = torch.device('cpu')
+        # if torch.backends.mps.is_available(): device = torch.device('mps')
+        print('using', device)
+        image_torch = Variable(image_tensor).to(device).unsqueeze(0)
         out, seg = net_model(
             image_torch
         )  # run inference using the network (calls 'forward' method)
