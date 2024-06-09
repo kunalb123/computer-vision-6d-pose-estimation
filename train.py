@@ -8,6 +8,7 @@ import torchvision.transforms as transforms
 from tqdm import tqdm
 import os
 import numpy as np
+import argparse
 
 device = torch.device('cpu')
 if torch.cuda.is_available():
@@ -63,11 +64,11 @@ def train_model(model, dataloader, loss_fn, optimizer, num_epochs=60, checkpoint
     for epoch in tqdm(range(start_epoch, num_epochs)):
         running_loss = 0.0
         i = 0
-        for images, targets in tqdm(dataloader, desc=f"Epoch {epoch + 1}/{num_epochs}"):
+        for images, target_dict in tqdm(dataloader, desc=f"Epoch {epoch + 1}/{num_epochs}"):
             i += 1
             print(i)
             images = images.to(device)
-            targets = targets.to(device)
+            targets = target_dict['gt_maps'].to(device)
 
             gt_belief_maps = targets[:, :9, :, :]
             gt_vector_fields = targets[:, 9:, :, :]
@@ -108,6 +109,21 @@ class GaussianNoise(object):
 
 
 if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser(description="Training script parser")
+    parser.add_argument('--epochs', type=int, default=60)
+    parser.add_argument('--lr', type=float, default=0.0001)
+    parser.add_argument('--batch_size', type=int, default=16)
+    parser.add_argument('--stages', type=int, default=5)
+    parser.add_argument('--extra_conv', type=bool, default=False)
+    args = parser.parse_args()
+
+    print('TRAINING MODEL WITH PARAMS:')
+    print('lr', args.lr)
+    print('batch size', args.batch_size)
+    print('stages', args.stages)
+    print('extra conv', args.extra_conv)
+
     device = torch.device('cpu')
     if torch.cuda.is_available():
         device = torch.device('cuda')
@@ -116,9 +132,9 @@ if __name__ == '__main__':
     print('device being used:', device)
 
     # Initialize model, loss, and optimizer
-    model = DeepPose().to(device)
-    composite_loss = CompositeLoss(stages=6)
-    optimizer = optim.Adam(model.parameters(), lr=0.000003125) # origial lr = 0.0001 (divide original learning rate by gpu and batchsize)
+    model = DeepPose(extra_conv=args.extra_conv, num_final_stages=args.stages).to(device)
+    composite_loss = CompositeLoss(stages=model.num_stages+1)
+    optimizer = optim.Adam(model.parameters(), lr=args.lr) # origial lr = 0.0001 (divide original learning rate by gpu and batchsize)
     # Train the model
     root = ''
     modelsPath = 'lm_models/models/models_info.json'
@@ -126,9 +142,9 @@ if __name__ == '__main__':
     OBJECT = 1
     
     annFile = f'train_annotations_obj{OBJECT}.json'
-    checkpoint_path = f'obj{OBJECT}_checkpoint.pth'
+    checkpoint_path = f'obj{OBJECT}_checkpoint_epochs{args.epochs}_lr{args.lr}_batch_size{args.batch_size}_stages{args.stages}_extra_conv{args.extra_conv}.pth'
+    print('will write to file:', checkpoint_path)
 
     dataset = LineMODCocoDataset(root, annFile, modelsPath)
-    
-    dataloader = DataLoader(dataset, batch_size=16, shuffle=True, num_workers=4)
-    train_model(model, dataloader, composite_loss, optimizer, checkpoint_path=checkpoint_path)
+    dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True)#, num_workers=4)
+    train_model(model, dataloader, composite_loss, optimizer, checkpoint_path=checkpoint_path, num_epochs=args.epochs)

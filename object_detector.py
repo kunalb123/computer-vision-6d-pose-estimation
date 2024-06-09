@@ -179,7 +179,7 @@ class ObjectDetector(object):
         """
         from PIL import Image
 
-        # tensor = tensor.cpu()
+        # tensor = tensor.to(torch.device('mps'))()
         grid = ObjectDetector.make_grid(tensor, nrow=nrow, padding=10, pad_value=1)
         if not mean is None:
             # ndarr = grid.mul(std).add(mean).mul(255).byte().transpose(0,2).transpose(0,1).numpy()
@@ -222,8 +222,8 @@ class ObjectDetector(object):
         # Run network inference
         image_tensor = transform(in_img)
         device = torch.device('cpu')
-        # if torch.backends.mps.is_available(): device = torch.device('mps')
-        print('using', device)
+        if torch.backends.mps.is_available(): device = torch.device('mps')
+        # print('using', device)
         image_torch = Variable(image_tensor).to(device).unsqueeze(0)
         out, seg = net_model(
             image_torch
@@ -251,8 +251,8 @@ class ObjectDetector(object):
             for j in range(tensor.size()[0]):
                 belief = tensor[j].clone()
                 if norm_belief:
-                    belief -= float(torch.min(belief)[0].data.cpu().numpy())
-                    belief /= float(torch.max(belief)[0].data.cpu().numpy())
+                    belief -= float(torch.min(belief)[0].data.to(torch.device('mps'))().numpy())
+                    belief /= float(torch.max(belief)[0].data.to(torch.device('mps'))().numpy())
 
                 belief = (
                     upsampling(belief.unsqueeze(0).unsqueeze(0))
@@ -260,7 +260,7 @@ class ObjectDetector(object):
                     .squeeze()
                     .data
                 )
-                belief = torch.clamp(belief, 0, 1).cpu()
+                belief = torch.clamp(belief, 0, 1).to(torch.device('mps'))()
                 belief = torch.cat(
                     [
                         belief.unsqueeze(0) + in_img[:, :, 0],
@@ -270,7 +270,7 @@ class ObjectDetector(object):
                 ).unsqueeze(0)
                 belief = torch.clamp(belief, 0, 1)
 
-                # belief_imgs.append(belief.data.squeeze().cpu().numpy().transpose(1,2,0))
+                # belief_imgs.append(belief.data.squeeze().to(torch.device('mps'))().numpy().transpose(1,2,0))
                 belief_imgs.append(belief.data.squeeze().numpy())
 
             # Create the image grid
@@ -311,11 +311,11 @@ class ObjectDetector(object):
             if None in points:
                 print("Incomplete cuboid detection.")
                 print("  result from detection:", points)
-                print("Skipping.")
+                print("Skipping. length of objects:", len(objects))
                 continue
 
             cuboid2d = np.copy(points)
-            location, quaternion, projected_points = pnp_solver.solve_pnp(points)
+            location, quaternion, rvec, projected_points = pnp_solver.solve_pnp(points)
 
             # run multiple sample
             if run_sampling:
@@ -370,6 +370,7 @@ class ObjectDetector(object):
                         "name": obj_name,
                         "location": location,
                         "quaternion": quaternion,
+                        "rvec": rvec, 
                         "cuboid2d": cuboid2d,
                         "projected_points": projected_points,
                         "confidence": obj[-1],
