@@ -9,9 +9,10 @@ import albumentations as A
 import util
 
 class LineMODCocoDataset(CocoDetection):
-    def __init__(self, root, annFile, modelsPath, transform=None, target_transform=None):
+    def __init__(self, root, annFile, modelsPath, train=True, transform=None, target_transform=None):
         super(LineMODCocoDataset, self).__init__(root, annFile, transform, target_transform)
         self.models = json.load(open(modelsPath, 'r'))
+        self.train = train
 
     def project_3D_vertices(self, vertices, target):
         pose = self.extract_pose(target) # 3 x 4
@@ -111,7 +112,8 @@ class LineMODCocoDataset(CocoDetection):
                 transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
             ]
         )
-        img = transform(image=img)['image'].transpose(2, 0, 1)
+        if self.train: img = transform(image=img)['image']
+        img = img.transpose(2, 0, 1)
         img_norm = normalize(img)
         belief_map, vector_field, projected_vertices = self.generate_ground_truth(img_norm, target)
         gt_maps = np.concatenate((belief_map, vector_field), axis=0)
