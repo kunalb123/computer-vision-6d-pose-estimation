@@ -68,6 +68,7 @@ def evaluate(model, dataset, obj_model, model_name='', pic_samples=10):
             num += 1
             print('num')
             img_norm, target_dict = dataset[i]
+
             detected_objects, im_belief = ObjectDetector().detect_object_in_image(
                 model, solver, target_dict['img'], config_detect)
             print('HERE', detected_objects)
@@ -124,7 +125,7 @@ if __name__ == '__main__':
     dataset_test = LineMODCocoDataset(root, annFileTest, modelsPath)
     
     # load_and_evaluate_models('model_checkpoints/', dataset_test, write_file='results.log')
-    model_checkpoint = 'model_checkpoints/obj1_checkpoint_epochs60_lr0.0001_batch_size64_stages5_extra_convFalse.pth'
+    model_checkpoint = 'model_checkpoints/obj1_checkpoint_epochs60_lr0.0001_batch_size64_stages3_extra_convFalse.pth'
     model = DeepPose(
         extra_conv=util.get_info_from_model_file(model_checkpoint, 'extra_conv'),
         num_final_stages=util.get_info_from_model_file(model_checkpoint, 'stages')
