@@ -30,7 +30,7 @@ def get_info_from_model_file(model_file, info):
             start_index -= 1
         ret = model_file[start_index:model_file.find('.pth')]
     elif info == 'extra_conv':
-        ret = bool(model_file[model_file.find(info) + len(info):model_file.find('.pth')])
+        ret = model_file[model_file.find(info) + len(info):model_file.find('.pth')] == "True"
     elif info == 'lr':
         ret = float(model_file[model_file.find(info) + len(info):model_file.find('_batch_size')])
     else:
@@ -41,7 +41,6 @@ def get_info_from_model_file(model_file, info):
             ret += model_file[end_index]
             end_index += 1
         ret = int(ret)
-    print('extracted info:', type(ret), ret)
     return ret
 
 def plot_object_point_map(detected_object, projected_vertices, img, save_dir='eval_pics', model_name='model', name=''):

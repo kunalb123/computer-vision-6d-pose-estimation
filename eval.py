@@ -11,6 +11,7 @@ import cv2
 import random
 from cuboid import Cuboid3d
 from cuboid_pnp_solver import CuboidPNPSolver
+from torch.autograd import Variable
 from object_detector import ObjectDetector
 import os
 
@@ -53,9 +54,8 @@ def compute_add(vertices, pred_pose, gt_pose):
 def evaluate(model, dataset, obj_model, model_name='', pic_samples=10):
     
     sample_indexes = random.sample(range(len(dataset)), pic_samples)
-
     cuboid1 = Cuboid3d([obj_model['size_x'], obj_model['size_y'], obj_model['size_z']])
-    K = util.get_cam_matrix(file='lm/camera.json')
+    K = util.get_cam_matrix(file='data/lm_base/lm/camera.json')
     solver = CuboidPNPSolver(camera_intrinsic_matrix=K, cuboid3d=cuboid1)
     model.eval()
     model.to(device)
@@ -65,14 +65,11 @@ def evaluate(model, dataset, obj_model, model_name='', pic_samples=10):
         running_add = 0
         num = 0
         for i in tqdm(range(len(dataset))):
-            num += 1
-            print('num')
             img_norm, target_dict = dataset[i]
-
             detected_objects, im_belief = ObjectDetector().detect_object_in_image(
                 model, solver, target_dict['img'], config_detect)
-            print('HERE', detected_objects)
             for detected_object in detected_objects:
+                num += 1
                 rvec, tvec = cv2.Rodrigues(detected_object['rvec'])[0], np.array(detected_object['location']).reshape(3, -1)
                 pred_pose = np.concatenate((rvec, tvec), axis=1)
                 gt_rvec = np.array(target_dict['targets']['cam_R_m2c']).reshape(3, 3)
@@ -88,9 +85,7 @@ def evaluate(model, dataset, obj_model, model_name='', pic_samples=10):
                         name=i)
 
                 add = compute_add(model_points, pred_pose, gt_pose)
-                print('ADD IS:', add)
                 running_add += add
-    
     return running_add / num
 
 
@@ -120,12 +115,12 @@ def load_and_evaluate_models(model_checkpoints_root, dataset, write_file='result
 
 if __name__ == '__main__':
     root = ''
-    modelsPath = 'lm_models/models/models_info.json'
-    annFileTest = 'annotations/test_annotations_obj1.json'
-    dataset_test = LineMODCocoDataset(root, annFileTest, modelsPath)
+    modelsPath = 'data/lm_models/models/models_info.json'
+    annFileTest = 'test_annotations_obj1.json'
+    dataset_test = LineMODCocoDataset(root, annFileTest, modelsPath, False)
     
-    # load_and_evaluate_models('model_checkpoints/', dataset_test, write_file='results.log')
-    model_checkpoint = 'model_checkpoints/obj1_checkpoint_epochs60_lr0.0001_batch_size64_stages3_extra_convFalse.pth'
+    #load_and_evaluate_models('model_checkpoints/', dataset_test, write_file='results.log')
+    model_checkpoint = 'checkpoints\obj1_checkpoint_epochs60_lr0.0001_batch_size64_stages3_extra_convFalse.pth'
     model = DeepPose(
         extra_conv=util.get_info_from_model_file(model_checkpoint, 'extra_conv'),
         num_final_stages=util.get_info_from_model_file(model_checkpoint, 'stages')
