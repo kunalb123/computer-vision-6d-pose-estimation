@@ -223,6 +223,7 @@ class ObjectDetector(object):
         image_tensor = transform(in_img)
         device = torch.device('cpu')
         if torch.backends.mps.is_available(): device = torch.device('mps')
+        if torch.cuda.is_available(): device = torch.device('cuda')
         # print('using', device)
         image_torch = Variable(image_tensor).to(device).unsqueeze(0)
         out, seg = net_model(
