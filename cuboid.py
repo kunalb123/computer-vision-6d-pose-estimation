@@ -92,14 +92,14 @@ class Cuboid3d():
 
             # List of 8 vertices of the box       
             self._vertices = [
-                [right, top, front],    # Front Top Right
-                [left, top, front],     # Front Top Left
-                [left, bottom, front],  # Front Bottom Left
+                [left, top, rear],      # Rear Top Left v1
+                [right, top, rear],     # Rear Top Right v2 
+                [left, bottom, rear],   # Rear Bottom Left v3
+                [left, top, front],     # Front Top Left v4
+                [right, bottom, rear],  # Rear Bottom Right v5
+                [right, top, front],    # Front Top Right v6           
+                [left, bottom, front],  # Front Bottom Left v7
                 [right, bottom, front], # Front Bottom Right
-                [right, top, rear],     # Rear Top Right
-                [left, top, rear],      # Rear Top Left
-                [left, bottom, rear],   # Rear Bottom Left
-                [right, bottom, rear],  # Rear Bottom Right
                 self.center_location,   # Center
             ]
         else:

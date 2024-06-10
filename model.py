@@ -4,18 +4,19 @@ import torchvision.models as models
 from torchvision.models import VGG19_Weights
 
 class DeepPose(nn.Module):
-    def __init__(self):
+    def __init__(self, extra_conv=False, num_final_stages=5):
         super(DeepPose, self).__init__()
         vgg19 = models.vgg19(VGG19_Weights.IMAGENET1K_V1)
         self.features = nn.Sequential(*list(vgg19.features.children())[:23])
         
-        self.num_stages = 5     # these are the additional stages change this number to change everywhere
+        self.num_stages = num_final_stages # CHANGE: these are the additional stages change this number to change everywhere
 
         self.relu = nn.ReLU()
         self.reduce_dim1 = nn.Conv2d(512, 256, kernel_size=3, padding=1, stride=1)
         self.reduce_dim2 = nn.Conv2d(256, 128, kernel_size=3, padding=1, stride=1)
 
-        self.interim_conv = nn.Conv2d(128, 128, kernel_size=3, padding=1, stride=1) # uncomment out in forward
+        self.interim_conv = nn.Conv2d(128, 128, kernel_size=3, padding=1, stride=1) # CHANGE
+        self.extra_conv = extra_conv
 
         self.stage1_b = nn.Sequential(
             nn.Conv2d(128, 128, kernel_size=3, padding=1),
@@ -82,7 +83,7 @@ class DeepPose(nn.Module):
         x = self.relu(self.reduce_dim1(x))
         x = self.relu(self.reduce_dim2(x))
 
-        # x = self.relu(self.interim_conv(x))
+        if self.extra_conv: x = self.relu(self.interim_conv(x))
 
         # First stage
         xb = self.stage1_b(x)

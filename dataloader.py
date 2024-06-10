@@ -6,29 +6,13 @@ import json
 from torch.utils.data import DataLoader
 import cv2
 import albumentations as A
+import util
 
 class LineMODCocoDataset(CocoDetection):
-    def __init__(self, root, annFile, modelsPath, transform=None, target_transform=None):
+    def __init__(self, root, annFile, modelsPath, train=True, transform=None, target_transform=None):
         super(LineMODCocoDataset, self).__init__(root, annFile, transform, target_transform)
         self.models = json.load(open(modelsPath, 'r'))
-
-    def create_3D_vertices(self, model):
-        vertices = np.empty((3, 0))
-        x, y, z = model['min_x'], model['min_y'], model['min_z']
-        size_x, size_y, size_z = np.array([model['size_x'], 0, 0]).reshape(3, -1),\
-                                 np.array([0, model['size_y'], 0]).reshape(3, -1),\
-                                 np.array([0, 0, model['size_z']]).reshape(3, -1)
-        v1 = np.array([x, y, z]).reshape(3, -1)
-        v2 = v1 + size_x
-        v3 = v1 + size_y
-        v4 = v1 + size_z
-        v5 = v1 + size_x + size_y
-        v6 = v1 + size_x + size_z
-        v7 = v1 + size_y + size_z
-        v8 = v1 + size_x + size_y + size_z
-        vertices = np.concatenate([v1, v2, v3, v4, v5, v6, v7, v8], axis=1)
-        #vertices = np.concatenate([eval(f'v{i}') for i in np.arange(1, 9)], axis=1)
-        return vertices
+        self.train = train
 
     def project_3D_vertices(self, vertices, target):
         pose = self.extract_pose(target) # 3 x 4
@@ -94,7 +78,7 @@ class LineMODCocoDataset(CocoDetection):
         vector_field = np.zeros((16, h, w), dtype=np.float32)
         cat = target['category_id']
         model = self.models[str(cat)]
-        vertices = self.create_3D_vertices(model)
+        vertices = util.create_3D_vertices(model)
         projected_vertices = self.project_3D_vertices(vertices, target)
 
         # Implement the actual logic for generating belief maps and vector fields
@@ -128,13 +112,14 @@ class LineMODCocoDataset(CocoDetection):
                 transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
             ]
         )
-        img = transform(image=img)['image'].transpose(2, 0, 1)
+        if self.train: img = transform(image=img)['image']
+        img = img.transpose(2, 0, 1)
         img_norm = normalize(img)
         belief_map, vector_field, projected_vertices = self.generate_ground_truth(img_norm, target)
         gt_maps = np.concatenate((belief_map, vector_field), axis=0)
         gt_maps = torch.from_numpy(gt_maps).float()
 
-        return img_norm, gt_maps#, projected_vertices, target, img
+        return img_norm, {'gt_maps': gt_maps, 'projected_vertices': projected_vertices, 'targets': target,'img': img}
 
     def extract_pose(self, target):
         # Placeholder for extracting pose information from the target
@@ -142,14 +127,3 @@ class LineMODCocoDataset(CocoDetection):
         R, t = np.array(target['cam_R_m2c']), np.array(target['cam_t_m2c'])
         pose = np.hstack([R.reshape(3, 3), t.reshape(3, -1)])
         return pose
-
-if __name__ == '__main__':
-
-    # Paths to your dataset
-    root = '/path/to/linemod/test_data'
-    annFile = '/path/to/linemod/annotations.json' 
-
-    dataset = LineMODCocoDataset(root, annFile)
-
-    # Create DataLoader
-    dataloader = DataLoader(dataset, batch_size=128, shuffle=True, num_workers=4)
