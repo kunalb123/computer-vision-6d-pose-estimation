@@ -83,6 +83,11 @@ def evaluate(model, dataset, obj_model, model_name='', pic_samples=10):
                         save_dir='eval_pics',
                         model_name=model_name,
                         name=i)
+                    util.visualize_bbox(target_dict['img'],
+                                        detected_object['projected_points'][:8],
+                                        'bbox_pics',
+                                        model_name,
+                                        i)
 
                 add = compute_add(model_points, pred_pose, gt_pose)
                 running_add += add

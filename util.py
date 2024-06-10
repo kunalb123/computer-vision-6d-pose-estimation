@@ -2,6 +2,7 @@ import numpy as np
 import json
 import matplotlib.pyplot as plt
 import os
+import cv2
 
 
 def get_cam_matrix(file='lm/camera.json'):
@@ -119,3 +120,54 @@ def create_3D_vertices(model):
     vertices = np.concatenate([v1, v2, v3, v4, v5, v6, v7, v8], axis=1)
     #vertices = np.concatenate([eval(f'v{i}') for i in np.arange(1, 9)], axis=1)
     return vertices
+
+def visualize_bbox(image, vertices, save_dir, model_name, name):
+    image = np.require(image, requirements=['C_CONTIGUOUS'])
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    edges = [
+        (1, 4), (1, 5), (5, 7), (4, 7),  # Front face edges
+        (0, 3), (0, 2), (2, 6), (3, 6),  # Back face edges
+        (0, 1), (3, 5), (6, 7), (2, 4)   # Connecting edges between front and back faces
+    ]
+    overlay = image.copy()
+    # Fill the faces to make the bounding box opaque
+    front_face = np.array([vertices[1], vertices[4], vertices[7], vertices[5]])
+    top_face = np.array([vertices[3], vertices[5], vertices[7], vertices[6]])
+    back_face = np.array([vertices[0], vertices[2], vertices[6], vertices[3]])
+    bottom_face = np.array([vertices[0], vertices[1], vertices[4], vertices[2]])
+    right_face = np.array([vertices[2], vertices[4], vertices[7], vertices[6]])
+    left_face = np.array([vertices[0], vertices[1], vertices[5], vertices[3]])
+    alpha = 0.8 
+
+    color = (209, 245, 66)
+
+
+    cv2.fillConvexPoly(image, np.int32([front_face]), color)
+    cv2.fillConvexPoly(image, np.int32([back_face]), color)
+    cv2.fillConvexPoly(image, np.int32([top_face]), color)
+    cv2.fillConvexPoly(image, np.int32([bottom_face]), color)
+    cv2.fillConvexPoly(image, np.int32([right_face]), color)
+    cv2.fillConvexPoly(image, np.int32([left_face]), color)
+    # Draw the edges on the image
+    
+    cv2.addWeighted(overlay, alpha, image, 1 - alpha, 0, image)
+    for edge in edges:
+        pt1 = tuple(vertices[edge[0]].astype(np.uint32))
+        pt2 = tuple(vertices[edge[1]].astype(np.uint32))
+        cv2.line(image, pt1, pt2, color, 2)
+
+    square_size = 3
+    for vertex in vertices:
+        top_left = (vertex[0] - square_size, vertex[1] - square_size)
+        bottom_right = (vertex[0] + square_size, vertex[1] + square_size)
+        cv2.rectangle(image, np.int32(top_left), np.int32(bottom_right), color, -1)  # Filled square with blue color
+
+    # Show and save the image
+    if not os.path.exists(save_dir):
+        print('creating directory', save_dir)
+        os.makedirs(save_dir)
+    if not os.path.exists(save_dir+'/'+model_name):
+        print('creating directory', save_dir+'/'+model_name)
+        os.makedirs(save_dir+'/'+model_name)
+    
+    cv2.imwrite(f'{save_dir}/{model_name}/{name}.png', image)
