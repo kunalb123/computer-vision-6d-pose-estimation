@@ -64,23 +64,6 @@ def plot_object_point_map(detected_object, projected_vertices, img, save_dir='ev
     plt.savefig(f'{save_dir}/{model_name}/{name}')
 
 
-def quaternion_to_rotation_matrix(quaternion):
-    """
-    Convert a quaternion to a 3x3 rotation matrix.
-    Parameters:
-    - quaternion: A list or numpy array with 4 elements [w, x, y, z]
-    Returns:
-    - A 3x3 rotation matrix
-    """
-    w, x, y, z = quaternion
-    R = np.array([
-    [1 - 2*y**2 - 2*z**2, 2*x*y - 2*z*w, 2*x*z + 2*y*w],
-    [2*x*y + 2*z*w, 1 - 2*x**2 - 2*z**2, 2*y*z - 2*x*w],
-    [2*x*z - 2*y*w, 2*y*z + 2*x*w, 1 - 2*x**2 - 2*y**2]
-    ])
-    return R
-
-
 def visualize_vector_field():
     raise(NotImplementedError)
     batch_size = pred_vector_fields.shape[0]
