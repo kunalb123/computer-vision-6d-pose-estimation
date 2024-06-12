@@ -15,3 +15,6 @@ Note: we do not use train_pbr we specifically use the training folder that conta
 Next, create a folder at the root of the directory called `model_checkpoints/`. This will store the checkpoints after each epoch that the model trains at a given configuration.
 
 Finally, there must be an `annotations/` file directory that contains annotation files for the data and handles the conversion of BOP (the way the data is formatted when downloaded) to COCO (the way we need the data to be formatted for our system)
+
+
+The main files to run are `train.py` and `eval.py`
