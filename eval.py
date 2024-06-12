@@ -55,7 +55,7 @@ def evaluate(model, dataset, obj_model, model_name='', pic_samples=10):
     
     sample_indexes = random.sample(range(len(dataset)), pic_samples)
     cuboid1 = Cuboid3d([obj_model['size_x'], obj_model['size_y'], obj_model['size_z']])
-    K = util.get_cam_matrix(file='data/lm_base/lm/camera.json')
+    K = util.get_cam_matrix()
     solver = CuboidPNPSolver(camera_intrinsic_matrix=K, cuboid3d=cuboid1)
     model.eval()
     model.to(device)
@@ -100,35 +100,36 @@ def load_and_evaluate_model(model_checkpoint, dataset, pic_samples=10):
                      obj_model=dataset.models['1'], 
                      model_name=util.get_info_from_model_file(model_checkpoint, 'name'), 
                      pic_samples=pic_samples)
-    print('score is:', model_checkpoint, score)
+    # print('score is:', model_checkpoint, score)
     return score
 
 
 def load_and_evaluate_models(model_checkpoints_root, dataset, write_file='results.log', pic_samples=10):
     model_checkpoints = [os.path.join(model_checkpoints_root, f) for f in os.listdir(model_checkpoints_root)]
     print('evaluating the following models:', model_checkpoints)
-    with open(write_file, 'w') as f:
-        for model_checkpoint in tqdm(model_checkpoints):
-            score = load_and_evaluate_model(model_checkpoint, dataset)
+    for model_checkpoint in tqdm(model_checkpoints):
+        if model_checkpoint == 'model_checkpoints/obj1_checkpoint_epochs60_lr0.0000125_batch_size64_stages5_extra_convFalse.pth': continue  # MAKE SURE TO EVALUATE THIS SEPARATELY 
+        score = load_and_evaluate_model(model_checkpoint, dataset, pic_samples=pic_samples)
+        with open(write_file, 'a') as f:
             f.write(f"{util.get_info_from_model_file(model_checkpoint, 'name')}: {score}\n")
         
 
 if __name__ == '__main__':
     root = ''
-    modelsPath = 'data/lm_models/models/models_info.json'
-    annFileTest = 'test_annotations_obj1.json'
+    modelsPath = 'lm_models/models/models_info.json'
+    annFileTest = 'annotations/test_annotations_obj1.json'
     dataset_test = LineMODCocoDataset(root, annFileTest, modelsPath, False)
     
-    #load_and_evaluate_models('model_checkpoints/', dataset_test, write_file='results.log')
-    model_checkpoint = 'checkpoints\obj1_checkpoint_epochs60_lr0.0001_batch_size64_stages3_extra_convFalse.pth'
-    model = DeepPose(
-        extra_conv=util.get_info_from_model_file(model_checkpoint, 'extra_conv'),
-        num_final_stages=util.get_info_from_model_file(model_checkpoint, 'stages')
-    )
-    load_model(model_checkpoint, model)
-    score = evaluate(model=model,
-                     dataset=dataset_test, 
-                     obj_model=dataset_test.models['1'], 
-                     model_name=util.get_info_from_model_file(model_checkpoint, 'name'), 
-                     pic_samples=10)
-    print('score is:', model_checkpoint, score)
+    load_and_evaluate_models('model_checkpoints/', dataset_test, write_file='results.log')
+    # model_checkpoint = 'checkpoints\obj1_checkpoint_epochs60_lr0.0001_batch_size64_stages3_extra_convFalse.pth'
+    # model = DeepPose(
+    #     extra_conv=util.get_info_from_model_file(model_checkpoint, 'extra_conv'),
+    #     num_final_stages=util.get_info_from_model_file(model_checkpoint, 'stages')
+    # )
+    # load_model(model_checkpoint, model)
+    # score = evaluate(model=model,
+    #                  dataset=dataset_test, 
+    #                  obj_model=dataset_test.models['1'], 
+    #                  model_name=util.get_info_from_model_file(model_checkpoint, 'name'), 
+    #                  pic_samples=10)
+    # print('score is:', model_checkpoint, score)
